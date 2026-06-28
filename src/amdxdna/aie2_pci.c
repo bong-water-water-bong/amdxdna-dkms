@@ -381,16 +381,16 @@ static int aie2_hw_start(struct amdxdna_dev *xdna)
 		goto disable_dev;
 	}
 
-	ret = aie2_smu_init(ndev);
-	if (ret) {
-		XDNA_ERR(xdna, "failed to init smu, ret %d", ret);
-		goto free_channel;
-	}
-
 	ret = aie2_psp_start(ndev->psp_hdl);
 	if (ret) {
 		XDNA_ERR(xdna, "failed to start psp, ret %d", ret);
-		goto fini_smu;
+		goto free_channel;
+	}
+
+	ret = aie2_smu_init(ndev);
+	if (ret) {
+		XDNA_ERR(xdna, "failed to init smu, ret %d", ret);
+		goto stop_psp_no_smu;
 	}
 
 	ret = aie2_get_mgmt_chann_info(ndev);
@@ -451,6 +451,8 @@ stop_fw:
 	xdna_mailbox_stop_channel(ndev->mgmt_chann);
 stop_psp:
 	aie2_psp_stop(ndev->psp_hdl);
+stop_psp_no_smu:
+	goto free_channel;
 fini_smu:
 	aie2_smu_fini(ndev);
 free_channel:
